@@ -1,0 +1,6 @@
+To update search
+
+run "hugo" and copy the index file algolia.json to https://dashboard.algolia.com/apps/8FTF2IUFX8/explorer/browse/algolia?searchMode=search
+
+To build
+hugo

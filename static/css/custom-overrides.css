@@ -1,0 +1,22 @@
+/* ===================================
+   Custom Overrides for CleanWhite Theme
+   =================================== */
+
+/* --- Navbar text readability fix --- */
+/* Add text shadow to all navbar text so it's readable on any background image */
+.navbar-custom .navbar-brand,
+.navbar-custom .nav li a {
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Add a subtle dark gradient overlay behind the navbar */
+.navbar-custom {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.15) 70%, transparent 100%) !important;
+}
+
+/* Keep the solid background when scrolled (fixed navbar) */
+@media only screen and (min-width: 768px) {
+    .navbar-custom.is-fixed {
+        background: #1a1a2e !important;
+    }
+}

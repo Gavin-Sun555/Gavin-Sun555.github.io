@@ -38,9 +38,9 @@ home = ["HTML", "RSS", "Algolia"]
   # algolia site search
   # NOTE: For Algolia indexing via CLI, credentials are in .env (see .env.example)
   algolia_search = true
-  algolia_appId = "8FTF2IUFX8"
+  algolia_appId = "99L6USE2AF"
   algolia_indexName = "algolia"
-  algolia_apiKey = "ea697c1c06eb948986928c3741fafe8b"
+  algolia_apiKey = "0e32693b2676fe823d8187f24161243d"
 
   # Sidebar settings
   sidebar_about_description = "Software Developer"

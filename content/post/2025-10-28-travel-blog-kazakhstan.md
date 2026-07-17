@@ -26,6 +26,8 @@ Going around city via bus is relatively easy, as bus is extremely affordable and
 
 I arrived in Astana early on October 5th and was able to check into my hotel right away. I spent the next two days exploring the city's futuristic architecture and cultural sites. 
 
+![Astana Capital](/img/kazakhstan/capital.jpg)
+
 **Day 1: City Walk & Museums**
 My first day was packed with sightseeing. I visited:
 * **Baiterek Tower:** I saw this iconic monument and observation tower, which symbolizes a mythical tree of life and the transfer of the capital in 1997.

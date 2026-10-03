@@ -8,7 +8,7 @@ hasCJKLanguage = true
 [services]
   # Enable comments by entering your Disqus shortname
   [services.disqus]
-    shortname = "https-gavin-sun555-github-io"
+    shortname = "https-gavin-sun555-github-io-1"
   [services.googleAnalytics]
     id = ""
 

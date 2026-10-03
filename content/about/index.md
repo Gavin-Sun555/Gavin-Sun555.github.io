@@ -1,5 +1,6 @@
 ---
 layout: page
+private: true
 ---
 
 # About Me

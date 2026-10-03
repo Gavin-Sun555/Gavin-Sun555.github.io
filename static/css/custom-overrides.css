@@ -14,19 +14,39 @@
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.15) 70%, transparent 100%) !important;
 }
 
-/* Keep the solid background when scrolled (fixed navbar) */
+/* Scrolled fixed navbar: ensure high contrast and sleek styling */
 @media only screen and (min-width: 768px) {
     .navbar-custom.is-fixed {
         background: #1a1a2e !important;
-        border-bottom: 1px solid #1a1a2e !important; /* Matches the background so no visible line */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    /* Override CleanWhite theme's dark text on fixed navbar with high-contrast white */
+    .navbar-custom.is-fixed .navbar-brand,
+    .navbar-custom.is-fixed .nav li a {
+        color: #ffffff !important;
+        text-shadow: none !important;
+        transition: color 0.2s ease-in-out;
+    }
+
+    .navbar-custom.is-fixed .navbar-brand:hover,
+    .navbar-custom.is-fixed .navbar-brand:focus,
+    .navbar-custom.is-fixed .nav li a:hover,
+    .navbar-custom.is-fixed .nav li a:focus {
+        color: #38bdf8 !important;
+    }
+
+    .navbar-custom.is-fixed .navbar-toggle .icon-bar {
+        background-color: #ffffff !important;
     }
 }
 
 /* Remove default border and shadow below transparent/normal navbar */
 .navbar-default,
 .navbar-custom {
-    border: none !important;
-    border-bottom: none !important;
-    box-shadow: none !important;
+    border: none;
+    border-bottom: none;
+    box-shadow: none;
 }
 

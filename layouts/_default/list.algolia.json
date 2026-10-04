@@ -1,0 +1,53 @@
+{{- /*
+  Project-level override of the CleanWhite theme's Algolia index template.
+
+  - Only indexes blog posts (section "post"); excludes drafts and pages with `private: true`.
+    This keeps utility pages (search placeholder, archive, portfolio, about) out of results.
+  - Indexes the full plain-text body so any word in a post is searchable.
+  - Long posts are split into multiple records (<= ~6000 bytes of text each) because Algolia
+    rejects records larger than 10KB. Records of the same post share the same `url`,
+    and the search page de-duplicates them into a single result.
+*/ -}}
+{{- $chunkSize := 6000 -}}
+{{- $index := slice -}}
+{{- range where .Site.RegularPages "Section" "post" -}}
+  {{- if and (not .Draft) (not .Params.private) -}}
+    {{- $page := . -}}
+    {{- $text := .Plain | htmlUnescape | replaceRE `\s+` " " | strings.TrimSpace -}}
+
+    {{- /* Split body into chunks on word boundaries */ -}}
+    {{- $chunks := slice -}}
+    {{- $current := "" -}}
+    {{- range split $text " " -}}
+      {{- if and (ne $current "") (gt (add (len $current) (len .)) $chunkSize) -}}
+        {{- $chunks = $chunks | append $current -}}
+        {{- $current = . -}}
+      {{- else if eq $current "" -}}
+        {{- $current = . -}}
+      {{- else -}}
+        {{- $current = printf "%s %s" $current . -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if ne $current "" }}{{ $chunks = $chunks | append $current }}{{ end -}}
+    {{- if not $chunks }}{{ $chunks = slice "" }}{{ end -}}
+
+    {{- $summary := .Description | default (.Summary | plainify | htmlUnescape) | replaceRE `\s+` " " | strings.TrimSpace | truncate 300 -}}
+
+    {{- range $i, $chunk := $chunks -}}
+      {{- $index = $index | append (dict
+          "objectID" (printf "%s-%d" $page.File.UniqueID $i)
+          "chunk" $i
+          "title" $page.Title
+          "url" $page.RelPermalink
+          "permalink" $page.Permalink
+          "summary" $summary
+          "content" $chunk
+          "tags" $page.Params.tags
+          "categories" $page.Params.categories
+          "section" $page.Section
+          "date" $page.Date.UTC.Unix
+        ) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $index | jsonify -}}

@@ -1,0 +1,280 @@
+<!--
+  Project-level override of the CleanWhite theme's search-algolia.html partial.
+  - Each hit is rendered as a separate card-style entry
+  - Dates removed from results
+  - Snippets are plain-text excerpts with client-side query highlighting
+-->
+<script src="https://cdn.jsdelivr.net/npm/instantsearch.js@2.6.0/dist/instantsearch.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/instantsearch.js@2.6.0/dist/instantsearch.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/instantsearch.js@2.6.0/dist/instantsearch-theme-algolia.min.css">
+
+<div id="search-searchbar"></div>
+<div class="search-results" id="search-hits"></div>
+
+<script>
+const search = instantsearch({
+  appId: '{{ .Site.Params.algolia_appId }}',
+  indexName: '{{ .Site.Params.algolia_indexName }}',
+  apiKey: '{{ .Site.Params.algolia_apiKey }}',
+  // Long posts are split into several records; fetch enough to de-duplicate per post
+  searchParameters: { hitsPerPage: 50 }
+});
+
+const SNIPPET_LENGTH = 220;
+const SNIPPET_LEAD = 80; // characters of context shown before the first match
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function stripHtml(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html || '';
+  return (div.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+function truncate(text, max) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut) + '…';
+}
+
+function queryTerms(query) {
+  return (query || '').split(/\s+/).filter(t => t.length > 1);
+}
+
+// Highlight query terms in already-escaped text
+function highlight(escapedText, query) {
+  const terms = queryTerms(query)
+    .map(t => escapeHtml(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!terms.length) return escapedText;
+  const re = new RegExp('(' + terms.join('|') + ')', 'gi');
+  return escapedText.replace(re, '<mark>$1</mark>');
+}
+
+// Excerpt centered on the first occurrence of any query term (falls back to the start)
+function excerpt(text, query) {
+  const lower = text.toLowerCase();
+  let first = -1;
+  for (const t of queryTerms(query)) {
+    const i = lower.indexOf(t.toLowerCase());
+    if (i !== -1 && (first === -1 || i < first)) first = i;
+  }
+  if (first <= SNIPPET_LEAD) return truncate(text, SNIPPET_LENGTH);
+  let start = text.lastIndexOf(' ', first - SNIPPET_LEAD);
+  start = start === -1 ? first - SNIPPET_LEAD : start + 1;
+  return '…' + truncate(text.slice(start), SNIPPET_LENGTH);
+}
+
+function currentQuery() {
+  return (search.helper && search.helper.state && search.helper.state.query) || '';
+}
+
+const hitTemplate = function(hit) {
+  const url = hit.url || hit.relpermalink || '#';
+  const query = currentQuery();
+
+  let title = '';
+  if (hit._highlightResult && hit._highlightResult.title && hit.title) {
+    title = hit._highlightResult.title.value;
+  } else if (hit.title) {
+    title = escapeHtml(hit.title);
+  } else {
+    // Fallback for pages without a title: derive from URL (e.g. /portfolio/ -> Portfolio)
+    const slug = url.replace(/\/+$/, '').split('/').pop() || 'Home';
+    title = escapeHtml(slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' '));
+  }
+
+  // Prefer the matching body text; with no query, show the post summary
+  const source = query ? (hit.content || hit.summary) : (hit.summary || hit.content);
+  const rawText = stripHtml(source || hit.description || '');
+  const snippet = highlight(escapeHtml(excerpt(rawText, query)), query);
+
+  let tags = '';
+  if (Array.isArray(hit.tags) && hit.tags.length) {
+    tags = '<div class="search-hit-tags">' +
+      hit.tags.map(t => `<span class="search-hit-tag">${escapeHtml(t)}</span>`).join('') +
+      '</div>';
+  }
+
+  return `
+    <a class="search-hit" href="${url}">
+      <h2 class="search-hit-title">${title}</h2>
+      ${snippet ? `<p class="search-hit-snippet">${snippet}</p>` : ''}
+      ${tags}
+      <span class="search-hit-more">Read more &rarr;</span>
+    </a>
+  `;
+};
+
+// Render all hits at once so records from the same post collapse into one result
+// (the first one is kept, since Algolia returns the best-ranked match first).
+const allItemsTemplate = function(data) {
+  const seen = new Set();
+  const items = (data.hits || []).filter(hit => {
+    const key = hit.url || hit.objectID;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return '<div class="search-hit-list">' + items.map(hitTemplate).join('') + '</div>';
+};
+
+search.addWidget(
+  instantsearch.widgets.searchBox({
+    container: '#search-searchbar',
+    placeholder: 'Search posts...',
+    poweredBy: true // Required on the free Community plan
+  })
+);
+
+search.addWidget(
+  instantsearch.widgets.hits({
+    container: '#search-hits',
+    templates: {
+      allItems: allItemsTemplate,
+      empty: '<div class="search-empty">No results found for <strong>"{{ "{{" }}query{{ "}}" }}"</strong>.</div>'
+    }
+  })
+);
+
+search.start();
+</script>
+
+<style>
+/* ---------- Search box ---------- */
+#search-searchbar {
+  margin: 10px 0 30px;
+}
+.ais-search-box {
+  max-width: 100%;
+  margin-bottom: 0;
+}
+.ais-search-box--input {
+  border: 1px solid #e3e6ec !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  height: 50px !important;
+  font-size: 16px !important;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.ais-search-box--input:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, .18) !important;
+  outline: none;
+}
+
+/* ---------- Results list ---------- */
+.search-hit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ---------- Each result as its own card ---------- */
+.post-container a.search-hit {
+  position: relative;
+  display: block;
+  padding: 22px 26px 20px;
+  background: #fff;
+  border: 1px solid #eceef2;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(26, 26, 46, .04);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.post-container a.search-hit::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #38bdf8, #1a1a2e);
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.post-container a.search-hit:hover,
+.post-container a.search-hit:focus {
+  transform: translateY(-2px);
+  border-color: #dbe7f0;
+  box-shadow: 0 10px 28px rgba(26, 26, 46, .10);
+  text-decoration: none;
+  color: inherit;
+}
+.post-container a.search-hit:hover::before,
+.post-container a.search-hit:focus::before {
+  opacity: 1;
+}
+
+.post-container .search-hit-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  line-height: 1.35;
+  color: #1a1a2e;
+  transition: color .2s ease;
+}
+.post-container a.search-hit:hover .search-hit-title {
+  color: #0284c7;
+}
+
+.search-hit-snippet {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #5b6170;
+}
+
+.search-hit mark,
+.search-hit .ais-Highlight,
+.search-hit em {
+  background: rgba(56, 189, 248, .22);
+  color: #0b3954;
+  font-style: normal;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.search-hit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.search-hit-tag {
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f2f4f8;
+  color: #5b6170;
+}
+
+.search-hit-more {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  transition: color .2s ease;
+}
+.search-hit:hover .search-hit-more {
+  color: #0284c7;
+}
+
+.search-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #8a909c;
+  border: 1px dashed #e3e6ec;
+  border-radius: 12px;
+}
+</style>
